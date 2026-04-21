@@ -96,21 +96,21 @@ class Scheduler:
         return customer, busiest.counter_id
 
     def _serve_sjf(self):
-        """
-        Shortest Job First: collect the front customer from every non-empty
+        """Shortest Job First: collect the front customer from every non-empty
         counter, pick the one with the smallest service_time, serve them.
         """
         candidates = []
         for counter in self.manager.counters:
             front = counter.peek_next()
             if front:
-                # (service_time, counter) — heapq will pick smallest service_time
-                heapq.heappush(candidates, (front.service_time, counter))
+                # Include counter_id to break ties without comparing ServiceCounter objects
+                heapq.heappush(candidates, (front.service_time, counter.counter_id, counter, front))
 
         if not candidates:
             return None, None
 
-        _, chosen_counter = heapq.heappop(candidates)
+        service_time, counter_id, chosen_counter, customer = heapq.heappop(candidates)
+        # Actually serve the customer (the one we peeked at)
         customer = chosen_counter.serve_next()
         self.manager.log(
             f"⚡[SJF] Served {customer} from Counter-{chosen_counter.counter_id} "
