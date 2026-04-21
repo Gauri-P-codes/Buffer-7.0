@@ -22,7 +22,7 @@ import plotly.express as px
 import pandas as pd
 import time
 
-from queue_manager import QueueManager
+from queue_manager import QueueManager,Customer
 from scheduler import Scheduler
 from simulation import (
     simulate_single_arrival,
@@ -39,7 +39,7 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed",
 )
-
+st.write("DEBUG: App is loading...")  # Add this line
 # ──────────────────────────────────────────────
 # Custom CSS — clean dark dashboard aesthetic
 # ──────────────────────────────────────────────
@@ -183,20 +183,47 @@ st.markdown("""
     color: #7dd3fc;
   }
   .log-entry { padding: 2px 0; border-bottom: 1px solid #1a2235; }
-
+            
+  /* ── Toggle / Checkbox labels ── */
+  .stToggle label, 
+  [data-testid="stToggle"] label,
+  div[data-testid="stToggle"] p,
+  .stCheckbox label,
+  [data-testid="stCheckbox"] label {
+    color: #e2e8f0 !important;
+    font-family: 'Space Grotesk', sans-serif !important;
+    font-weight: 500 !important;
+    [data-testid="stToggle"] 
+            span {
+    color: #e2e8f0;
+    }
+  }
+ /* ── Toggle label fix ── */
+  label, label p, label span {
+    color: #93c5fd !important;
+  }
   /* ── Buttons ── */
   .stButton > button {
+    background: #1a2235 !important;
+    color: #93c5fd !important;
     border-radius: 10px !important;
     font-weight: 600 !important;
     font-family: 'Space Grotesk', sans-serif !important;
     transition: all 0.15s !important;
-    border: 1px solid #374151 !important;
+    border: 1px solid #2d3748 !important;
+    width: 100% !important;
   }
   .stButton > button:hover {
+    background: #1e2d45 !important;
+    color: #60a5fa !important;
+    border-color: #3b82f6 !important;
     transform: translateY(-2px) !important;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2) !important;
   }
-
+  .stButton > button:active {
+    transform: translateY(0px) !important;
+    box-shadow: none !important;
+  }
   /* ── Section title ── */
   .section-title {
     font-size: 1.1rem;
@@ -431,6 +458,7 @@ st.markdown('<div class="section-title">📈 Queue History & Analytics</div>',
 chart_col1, chart_col2 = st.columns(2, gap="medium")
 
 # ── Chart 1: Queue size over time (line chart) ──
+# ── Chart 1: Queue size over time (line chart) ──
 with chart_col1:
     history = manager.history
     if len(history) >= 2:
@@ -444,12 +472,20 @@ with chart_col1:
         fig = go.Figure()
         colors = ["#60a5fa", "#a78bfa", "#34d399", "#fbbf24", "#f87171"]
         for idx, col in enumerate([c for c in df.columns if c != "Tick"]):
+            # Fix the fillcolor conversion
+            color_hex = colors[idx % len(colors)]
+            # Convert hex to rgba properly
+            r = int(color_hex[1:3], 16)
+            g = int(color_hex[3:5], 16)
+            b = int(color_hex[5:7], 16)
+            fillcolor_rgba = f"rgba({r},{g},{b},0.05)"
+            
             fig.add_trace(go.Scatter(
                 x=df["Tick"], y=df[col],
                 name=col,
-                line=dict(color=colors[idx % len(colors)], width=2.5),
+                line=dict(color=color_hex, width=2.5),
                 fill="tozeroy",
-                fillcolor=colors[idx % len(colors)].replace("#", "rgba(").replace(")", ",0.05)") + ")",
+                fillcolor=fillcolor_rgba,
                 mode="lines+markers",
                 marker=dict(size=4),
             ))
@@ -468,7 +504,6 @@ with chart_col1:
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.info("Interact with the system to generate history data.")
-
 # ── Chart 2: Current queue comparison (bar chart) ──
 with chart_col2:
     lengths  = summary["queue_lengths"]
