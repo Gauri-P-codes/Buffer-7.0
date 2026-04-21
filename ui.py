@@ -30,6 +30,13 @@ from simulation import (
     seed_initial_customers,
 )
 
+def hex_to_rgba(hex_color, alpha=0.05):
+    hex_color = hex_color.lstrip("#")
+    r = int(hex_color[0:2], 16)
+    g = int(hex_color[2:4], 16)
+    b = int(hex_color[4:6], 16)
+    return f"rgba({r},{g},{b},{alpha})"
+
 # ──────────────────────────────────────────────
 # Page config — must be first Streamlit call
 # ──────────────────────────────────────────────
@@ -39,7 +46,7 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed",
 )
-st.write("DEBUG: App is loading...")  # Add this line
+
 # ──────────────────────────────────────────────
 # Custom CSS — clean dark dashboard aesthetic
 # ──────────────────────────────────────────────
@@ -162,7 +169,6 @@ st.markdown("""
 
   /* ── Status badges ── */
   .badge-normal  { background:#1e3a5f; color:#60a5fa; border:1px solid #3b82f6; padding:4px 12px; border-radius:20px; font-size:0.8rem; font-weight:600; }
-  .badge-sjf     { background:#2d1b5e; color:#a78bfa; border:1px solid #7c3aed; padding:4px 12px; border-radius:20px; font-size:0.8rem; font-weight:600; }
   .badge-peak    { background:#4c1d1d; color:#f87171; border:1px solid #ef4444; padding:4px 12px; border-radius:20px; font-size:0.8rem; font-weight:600; animation: pulse 1s infinite; }
 
   @keyframes pulse {
@@ -279,11 +285,10 @@ def queue_color(length: int, max_len: int = 10) -> str:
 # ──────────────────────────────────────────────
 summary = scheduler.status_summary()
 
-mode_badge = (
-    '<span class="badge-sjf">⚡ SJF MODE</span>' if summary["mode"] == "SJF"
-    else '<span class="badge-normal">🔵 NORMAL MODE</span>'
-)
+# Remove SJF badge — mode is always NORMAL now
+mode_badge = '<span class="badge-normal">🔵 NORMAL MODE</span>'
 peak_badge = '<span class="badge-peak">🚨 PEAK LOAD</span>' if summary["is_peak"] else ""
+
 
 st.markdown(f"""
 <div class="header-box">
@@ -471,21 +476,16 @@ with chart_col1:
 
         fig = go.Figure()
         colors = ["#60a5fa", "#a78bfa", "#34d399", "#fbbf24", "#f87171"]
+
         for idx, col in enumerate([c for c in df.columns if c != "Tick"]):
-            # Fix the fillcolor conversion
-            color_hex = colors[idx % len(colors)]
-            # Convert hex to rgba properly
-            r = int(color_hex[1:3], 16)
-            g = int(color_hex[3:5], 16)
-            b = int(color_hex[5:7], 16)
-            fillcolor_rgba = f"rgba({r},{g},{b},0.05)"
-            
+            color = colors[idx % len(colors)]
+
             fig.add_trace(go.Scatter(
                 x=df["Tick"], y=df[col],
                 name=col,
-                line=dict(color=color_hex, width=2.5),
+                line=dict(color=color, width=2.5),
                 fill="tozeroy",
-                fillcolor=fillcolor_rgba,
+                fillcolor=hex_to_rgba(color, 0.05),  # ✅ FIXED
                 mode="lines+markers",
                 marker=dict(size=4),
             ))
