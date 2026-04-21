@@ -22,13 +22,20 @@ import plotly.express as px
 import pandas as pd
 import time
 
-from queue_manager import QueueManager
+from queue_manager import QueueManager,Customer
 from scheduler import Scheduler
 from simulation import (
     simulate_single_arrival,
     run_auto_simulation_step,
     seed_initial_customers,
 )
+
+def hex_to_rgba(hex_color, alpha=0.05):
+    hex_color = hex_color.lstrip("#")
+    r = int(hex_color[0:2], 16)
+    g = int(hex_color[2:4], 16)
+    b = int(hex_color[4:6], 16)
+    return f"rgba({r},{g},{b},{alpha})"
 
 # ──────────────────────────────────────────────
 # Page config — must be first Streamlit call
@@ -183,20 +190,47 @@ st.markdown("""
     color: #7dd3fc;
   }
   .log-entry { padding: 2px 0; border-bottom: 1px solid #1a2235; }
-
+            
+  /* ── Toggle / Checkbox labels ── */
+  .stToggle label, 
+  [data-testid="stToggle"] label,
+  div[data-testid="stToggle"] p,
+  .stCheckbox label,
+  [data-testid="stCheckbox"] label {
+    color: #e2e8f0 !important;
+    font-family: 'Space Grotesk', sans-serif !important;
+    font-weight: 500 !important;
+    [data-testid="stToggle"] 
+            span {
+    color: #e2e8f0;
+    }
+  }
+ /* ── Toggle label fix ── */
+  label, label p, label span {
+    color: #93c5fd !important;
+  }
   /* ── Buttons ── */
   .stButton > button {
+    background: #1a2235 !important;
+    color: #93c5fd !important;
     border-radius: 10px !important;
     font-weight: 600 !important;
     font-family: 'Space Grotesk', sans-serif !important;
     transition: all 0.15s !important;
-    border: 1px solid #374151 !important;
+    border: 1px solid #2d3748 !important;
+    width: 100% !important;
   }
   .stButton > button:hover {
+    background: #1e2d45 !important;
+    color: #60a5fa !important;
+    border-color: #3b82f6 !important;
     transform: translateY(-2px) !important;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2) !important;
   }
-
+  .stButton > button:active {
+    transform: translateY(0px) !important;
+    box-shadow: none !important;
+  }
   /* ── Section title ── */
   .section-title {
     font-size: 1.1rem;
@@ -431,6 +465,7 @@ st.markdown('<div class="section-title">📈 Queue History & Analytics</div>',
 chart_col1, chart_col2 = st.columns(2, gap="medium")
 
 # ── Chart 1: Queue size over time (line chart) ──
+# ── Chart 1: Queue size over time (line chart) ──
 with chart_col1:
     history = manager.history
     if len(history) >= 2:
@@ -443,13 +478,16 @@ with chart_col1:
 
         fig = go.Figure()
         colors = ["#60a5fa", "#a78bfa", "#34d399", "#fbbf24", "#f87171"]
+
         for idx, col in enumerate([c for c in df.columns if c != "Tick"]):
+            color = colors[idx % len(colors)]
+
             fig.add_trace(go.Scatter(
                 x=df["Tick"], y=df[col],
                 name=col,
-                line=dict(color=colors[idx % len(colors)], width=2.5),
+                line=dict(color=color, width=2.5),
                 fill="tozeroy",
-                fillcolor=colors[idx % len(colors)].replace("#", "rgba(").replace(")", ",0.05)") + ")",
+                fillcolor=hex_to_rgba(color, 0.05),  # ✅ FIXED
                 mode="lines+markers",
                 marker=dict(size=4),
             ))
@@ -468,7 +506,6 @@ with chart_col1:
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.info("Interact with the system to generate history data.")
-
 # ── Chart 2: Current queue comparison (bar chart) ──
 with chart_col2:
     lengths  = summary["queue_lengths"]
