@@ -17,25 +17,29 @@ import time
 # ─────────────────────────────────────────────
 # Customer class — one object per person
 # ─────────────────────────────────────────────
+import time   # ✅ MUST BE HERE
+
 class Customer:
     """Represents a single customer in the system."""
-
-    _id_counter = 0  # class-level counter to give each customer a unique ID
+     
+    _id_counter = 0
 
     def __init__(self, name: str, is_vip: bool = False, service_time: int = 3):
         Customer._id_counter += 1
-        self.customer_id   = Customer._id_counter
-        self.name          = name
-        self.is_vip        = is_vip
-        self.service_time  = service_time   # how many seconds/ticks to serve
-        self.arrival_time  = time.time()    # wall-clock arrival
-        self.priority      = 0 if is_vip else 1  # lower number = higher priority
+        self.customer_id  = Customer._id_counter
+        self.name         = name
+        self.is_vip       = is_vip
+        self.service_time = service_time
+
+        # ✅ correct place (inside constructor)
+        self.arrival_time = time.time()
+
+        self.priority     = 0 if is_vip else 1
 
     def __repr__(self):
         tag = "⭐VIP" if self.is_vip else "👤Norm"
         return f"[{tag} #{self.customer_id} '{self.name}' svc={self.service_time}s]"
 
-    # heapq compares tuples; we implement __lt__ so Customer objects are sortable
     def __lt__(self, other):
         return self.priority < other.priority
 
