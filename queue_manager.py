@@ -17,25 +17,29 @@ import time
 # ─────────────────────────────────────────────
 # Customer class — one object per person
 # ─────────────────────────────────────────────
+import time   # ✅ MUST BE HERE
+
 class Customer:
     """Represents a single customer in the system."""
-
-    _id_counter = 0  # class-level counter to give each customer a unique ID
+     
+    _id_counter = 0
 
     def __init__(self, name: str, is_vip: bool = False, service_time: int = 3):
         Customer._id_counter += 1
-        self.customer_id   = Customer._id_counter
-        self.name          = name
-        self.is_vip        = is_vip
-        self.service_time  = service_time   # how many seconds/ticks to serve
-        self.arrival_time  = time.time()    # wall-clock arrival
-        self.priority      = 0 if is_vip else 1  # lower number = higher priority
+        self.customer_id  = Customer._id_counter
+        self.name         = name
+        self.is_vip       = is_vip
+        self.service_time = service_time
+
+        # ✅ correct place (inside constructor)
+        self.arrival_time = time.time()
+
+        self.priority     = 0 if is_vip else 1
 
     def __repr__(self):
-        tag = "⭐VIP" if self.is_vip else "👤Norm"
+        tag = "VIP" if self.is_vip else "Norm"
         return f"[{tag} #{self.customer_id} '{self.name}' svc={self.service_time}s]"
 
-    # heapq compares tuples; we implement __lt__ so Customer objects are sortable
     def __lt__(self, other):
         return self.priority < other.priority
 
@@ -64,8 +68,8 @@ class ServiceCounter:
     def add_customer(self, customer: Customer):
         """Add customer to the right queue based on VIP status."""
         if customer.is_vip:
-            # heapq uses a (priority, customer) tuple so ties break deterministically
-            heapq.heappush(self.priority_heap, (customer.priority, customer))
+            # heapq uses a (priority, id, customer) tuple so ties break deterministically
+            heapq.heappush(self.priority_heap, (customer.priority, customer.customer_id, customer))
         else:
             self.queue.append(customer)
 
@@ -77,7 +81,7 @@ class ServiceCounter:
         Returns the served Customer or None if empty.
         """
         if self.priority_heap:
-            _, customer = heapq.heappop(self.priority_heap)
+            _, _, customer = heapq.heappop(self.priority_heap)
         elif self.queue:
             customer = self.queue.popleft()   # O(1) with deque
         else:
@@ -108,21 +112,21 @@ class ServiceCounter:
     def peek_next(self):
         """Who is at the front? (without removing)"""
         if self.priority_heap:
-            return self.priority_heap[0][1]
+            return self.priority_heap[0][2]
         if self.queue:
             return self.queue[0]
         return None
 
     def all_customers(self):
         """Return a flat list of all waiting customers (for display)."""
-        vip_list  = [c for (_, c) in sorted(self.priority_heap)]
+        vip_list  = [c for (_, _, c) in sorted(self.priority_heap)]
         norm_list = list(self.queue)
         return vip_list + norm_list
 
     def __repr__(self):
         return (f"Counter-{self.counter_id} | "
                 f"Queue={self.total_length()} | "
-                f"Wait≈{self.estimated_wait_time():.1f}s")
+                f"Wait~{self.estimated_wait_time():.1f}s")
 
 
 # ─────────────────────────────────────────────
